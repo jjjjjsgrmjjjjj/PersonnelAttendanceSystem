@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0f2b46">
+<title>__TITLE__ · 考勤系统</title>
+<link rel="stylesheet" href="/styles.__V__.css">
+<link rel="icon" type="image/jpeg" href="/logo.jpg">
+</head>
+<body>
+
+
+<!-- 登录页 -->
+<section id="view-login" class="view">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <img class="brand-logo" src="/logo.jpg" alt="示例 VISION 标志" width="72" height="72">
+        <div>
+          <h1>__ORG__</h1>
+          <p class="muted">示例季第01届田径运动会 · 考勤系统</p>
+        </div>
+      </div>
+      <h2 class="login-title">__SUBTITLE__</h2>
+      <form id="login-form" autocomplete="on">
+        <label>账号
+          <input id="login-username" name="username" type="text" autocomplete="username" required placeholder="组长姓名全拼（小写）">
+        </label>
+        <label>密码
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="请输入密码">
+        </label>
+        <label class="check login-remember">
+          <input type="checkbox" id="login-remember" checked autocomplete="off"> 记住账号和密码
+        </label>
+        <p class="muted small login-tip">密码只保存在本机浏览器，请只在个人设备上勾选。</p>
+        <div id="login-error" class="error" hidden></div>
+        <button class="btn primary block" type="submit">登 录</button>
+      </form>
+    </div>
+    <p class="copyright">Copyright © 2026 就是个人满级. All rights reserved</p>
+  </div>
+</section>
+
+<!-- 主应用 -->
+<section id="view-app" class="view" hidden>
+  <header class="topbar">
+    <div class="topbar-left">
+      <img class="brand-logo small" src="/logo.jpg" alt="示例">
+      <div class="topbar-title">
+        <strong id="app-title" class="topbar-title-t">考勤系统</strong>
+        <span id="app-sub" class="topbar-sub"></span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-btn" id="theme-btn" type="button" title="切换主题">◐</button>
+      <span id="save-state" class="save-state">已同步</span>
+      <span id="whoami" class="chip"></span>
+      <button class="btn ghost" id="btn-download-center" style="color:#fff" hidden>下载中心</button>
+      <button class="btn ghost" id="btn-password" style="color:#fff">修改密码</button>
+      <button class="btn ghost" id="btn-logout" style="color:#fff">退出</button>
+      <span class="ver" id="app-ver"></span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="fill">考勤填报</button>
+    <button class="tab" data-tab="stats">统计分析</button>
+    <button class="tab" data-tab="admin" id="tab-admin" hidden>系统设置</button>
+    <span class="spacer"></span>
+    <div class="export-group">
+      <button class="btn" id="btn-export-xlsx" style="color:#fff"__ADMIN_HIDDEN__>导出 Excel（.xlsx）</button>
+    </div>
+  </nav>
+
+  <!-- 填报 -->
+  <main id="tab-fill" class="tab-panel">
+    <div class="toolbar">
+      <div class="tool-group">
+        <span class="tool-label">日期</span>
+        <div class="segmented" id="date-switch"></div>
+      </div>
+      <div class="tool-group">
+        <span class="tool-label">标记</span>
+        <div class="segmented" id="mark-buttons">
+          <button type="button" class="seg st-present active" data-status="present">出勤</button>
+          <button type="button" class="seg st-late" data-status="late">迟到</button>
+          <button type="button" class="seg st-absent" data-status="absent">缺勤</button>
+          <button type="button" class="seg st-leave" data-status="leave">请假</button>
+          <button type="button" class="seg st-clear" data-status="unmarked">清除</button>
+        </div>
+      </div>
+      <div class="tool-group">
+        <span class="tool-label">批量</span>
+        <button class="btn small" id="btn-row-present" style="color:#fff">本行全部出勤</button>
+        <button class="btn small" id="btn-col-present" style="color:#fff">本时段全部出勤</button>
+        <button class="btn small" id="btn-row-clear" style="color:#fff">本行全部清空</button>
+        <button class="btn small" id="btn-col-clear" style="color:#fff">本时段全部清空</button>
+        <button class="btn small" id="btn-reload" style="color:#fff">重新载入</button>
+      </div>
+      <div class="tool-group grow">
+        <span class="tool-label">只看</span>
+        <select id="group-filter" class="select"><option value="">全部分组</option></select>
+        <label class="check"><input type="checkbox" id="only-mine"> 只显示我负责的组</label>
+      </div>
+    </div>
+
+    <div id="fill-hint" class="hint">
+      点格子选状态，也可先选中格子再按数字键 1 出勤 / 2 迟到 / 3 缺勤 / 4 请假 / 0 清除；方向键移动，右键打开备注。改动会自动保存。
+    </div>
+
+    <div class="grid-wrap">
+      <table id="grid" class="grid">
+        <thead id="grid-head"></thead>
+        <tbody id="grid-body"></tbody>
+      </table>
+      <div id="grid-empty" class="empty" hidden>没有可显示的人员。</div>
+    </div>
+
+    <div class="panels">
+      <div class="card">
+        <div class="card-head">
+          <h3>现场备注 / 待办</h3>
+          <span class="muted" id="reminder-date"></span>
+        </div>
+        <ul id="reminder-list" class="reminder-list"></ul>
+        <form id="reminder-form" class="reminder-form">
+          <input id="reminder-input" type="text" maxlength="300" placeholder="例如：15:00 无人机需换电池；成员15迟到 8 分钟">
+          <button class="btn primary" type="submit">添加</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>当前日期统计</h3></div>
+        <div id="day-stats" class="day-stats"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 统计 -->
+  <main id="tab-stats" class="tab-panel" hidden>
+    <div class="toolbar">
+      <div class="tool-group">
+        <span class="tool-label">视图</span>
+        <div class="segmented" id="stats-switch">
+          <button class="seg active" data-view="member">按人员</button>
+          <button class="seg" data-view="slot">按时段</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid-wrap">
+      <table id="stats-table" class="grid stats-table"></table>
+    </div>
+  </main>
+
+  <!-- 管理 -->
+  <main id="tab-admin" class="tab-panel" hidden>
+    <div class="admin-grid">
+      <div class="card">
+        <div class="card-head"><h3>活动设置</h3></div>
+        <form id="config-form" class="form">
+          <label>表格标题<input name="title" type="text"></label>
+          <label>单位名称<input name="org" type="text"></label>
+          <label>副标题<input name="subtitle" type="text"></label>
+          <label>活动日期（每行一个，格式 2026-09-28）<textarea name="dates" rows="3"></textarea></label>
+          <label>半小时时段（每行一个，格式 07:00-07:30）<textarea name="slots" rows="14"></textarea></label>
+          <label>全局备注<textarea name="note" rows="3"></textarea></label>
+          <div class="form-actions">
+            <button class="btn primary" type="submit">保存设置</button>
+            <button class="btn ghost" type="button" id="btn-regen-slots">按 7:00–18:00 重新生成时段</button>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>账号与权限</h3></div>
+        <div class="table-scroll">
+          <table class="mini-table" id="users-table"></table>
+        </div>
+        <p class="muted small">组长只能填报自己负责的分组；管理员可填报全部并导出。</p>
+      </div>
+      <div class="card wide">
+        <div class="card-head"><h3>操作日志</h3><button class="btn small ghost" id="btn-load-audit">刷新</button></div>
+        <div class="table-scroll">
+          <table class="mini-table" id="audit-table"></table>
+        </div>
+      </div>
+    </div>
+  </main>
+  <p class="copyright">Copyright © 2026 就是个人满级. All rights reserved</p>
+</section>
+
+<!-- 下载中心 -->
+<dialog id="dlg-download" class="dlg">
+  <form method="dialog">
+    <h3>下载中心</h3>
+    <p class="muted small">点下面的条目即可下载（手机上下载安装包，电脑上下载使用手册）。</p>
+    <div class="dl-list">
+      <a class="dl-item" id="dl-app" href="/download/activity-kaoqin.apk">
+        <b>安卓 App 安装包</b><span>示例考勤 · 最新版本，手机浏览器打开即下载</span>
+      </a>
+      <a class="dl-item" href="/download/activity-kaoqin-manual.pdf">
+        <b>使用手册（PDF）</b><span>适合手机上查看、打印，A4 排版</span>
+      </a>
+      <a class="dl-item" href="/download/activity-kaoqin-manual.docx">
+        <b>使用手册（Word）</b><span>适合电脑上编辑、二次修改</span>
+      </a>
+    </div>
+    <menu>
+      <button class="btn primary" type="button" id="dl-close">关闭</button>
+    </menu>
+  </form>
+</dialog>
+
+<!-- 修改密码 -->
+<dialog id="dlg-password" class="dlg">
+  <form method="post" id="password-form">
+    <h3>修改密码</h3>
+    <p class="muted small" id="pwd-hint">首次登录请修改初始密码。</p>
+    <label>原密码<input type="password" name="oldPassword" required autocomplete="current-password"></label>
+    <label>新密码（至少 6 位）<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
+    <label>再输一次<input type="password" name="password2" required minlength="6" autocomplete="new-password"></label>
+    <div class="dlg-error error" id="pwd-error" hidden></div>
+    <menu>
+      <button class="btn ghost" type="button" id="pwd-cancel">取消</button>
+      <button class="btn primary" type="submit">确定修改</button>
+    </menu>
+  </form>
+</dialog>
+
+<!-- 单元格备注 -->
+<dialog id="dlg-cell" class="dlg">
+  <form method="post" id="cell-form">
+    <h3 id="cell-title">备注</h3>
+    <div class="segmented" id="cell-status">
+      <button type="button" class="seg st-present" data-status="present">出勤</button>
+      <button type="button" class="seg st-late" data-status="late">迟到</button>
+      <button type="button" class="seg st-absent" data-status="absent">缺勤</button>
+      <button type="button" class="seg st-leave" data-status="leave">请假</button>
+      <button type="button" class="seg st-clear" data-status="unmarked">清除</button>
+    </div>
+    <label>备注（如迟到时间、离岗原因、请假事由）<textarea name="note" rows="3" maxlength="500"></textarea></label>
+    <label>替岗人员（非新媒体中心同学不得替岗）<input type="text" name="substitute" maxlength="100"></label>
+    <div class="dlg-error error" id="cell-error" hidden></div>
+    <menu>
+      <button class="btn ghost" type="button" id="cell-cancel">取消</button>
+      <button class="btn primary" type="submit">保存</button>
+    </menu>
+  </form>
+</dialog>
+
+<!-- 导出范围选择 -->
+<dialog id="dlg-export" class="dlg">
+  <form method="dialog" id="export-form">
+    <h3>导出 Excel</h3>
+    <p class="muted small">选择要导出的范围；每项都点了「全部」就是导出全部内容。</p>
+    <div class="exp-range">
+      <div class="exp-col">
+        <div class="exp-head"><span>日期</span><label class="check small"><input type="checkbox" data-all="dates"> 全部</label></div>
+        <div class="exp-list" id="exp-dates"></div>
+      </div>
+      <div class="exp-col">
+        <div class="exp-head"><span>时段</span><label class="check small"><input type="checkbox" data-all="slots"> 全部</label></div>
+        <div class="exp-list" id="exp-slots"></div>
+      </div>
+      <div class="exp-col">
+        <div class="exp-head"><span>组别</span><label class="check small"><input type="checkbox" data-all="groups"> 全部</label></div>
+        <div class="exp-list" id="exp-groups"></div>
+      </div>
+    </div>
+    <div class="exp-foot">
+      <label class="check"><input type="checkbox" id="exp-xls"> 用 .xls 格式</label>
+      <span id="exp-sum" class="muted small"></span>
+    </div>
+    <div class="dlg-error error" id="export-error" hidden></div>
+    <menu>
+      <button class="btn ghost" type="button" id="export-cancel">取消</button>
+      <button class="btn primary" type="button" id="export-run">开始导出</button>
+    </menu>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="/app.__V__.js"></script>
+</body>
+</html>

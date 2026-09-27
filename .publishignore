@@ -1,0 +1,61 @@
+# ============================================================
+# 发布白名单（tools/publish/list.js 使用）
+# ------------------------------------------------------------
+# 语法：+ 放行，- 排除；规则自上而下匹配，命中即停。
+# 未命中任何规则 = 拒绝（所以最后不需要写 `- *`）。
+#
+# 【重要】不要写 `+ /src/` 这种"目录形式"，再写 `+ /src/**`。
+# 两者都会展开成 `^src/.*$`，而规则是命中即停 —— 第一条就把
+# 目录下所有文件放行了，后面的排除规则永远轮不到。
+# 只写 `+ /dir/**` 一条即可，它本身就能匹配 dir 下所有层级。
+# ============================================================
+
+# ---- 根文件 ----
++ /.gitignore
++ /.publishignore
++ /.env.example
++ /package.json
++ /LICENSE
+
+# ---- README：线上发布用脱敏版；本地真实版改名 README.local.md 后自动排除 ----
+# README.public.md 只是"素材"，发布时会生成 README.md，本身不进仓库
++ /README.public.md
+- /README.public.md
+
+# ---- 源码 ----
++ /src/**
+# 注意：roster.js（真实名单）要放行，否则 scripts 拿不到它来生成脱敏版；
+# 发布脚本会把它脱敏后输出为 src/data/roster.example.js，绝不会原样发布。
+- /src/data/*.local.js
+
+# ---- 前端 ----
++ /public/**
+# 构建产物 / 二进制资产不入库：
+#   · APK 内部烧录了包名与站内 URL，改文件名治标不治本，应由源码重新构建
+#   · 手册的 docx/pdf 由 docs/manual.md 生成
+#   · 历史版本 APK 会让仓库迅速膨胀
+- /public/download/*.apk
+- /public/download/*.pdf
+- /public/download/*.docx
+- /public/download/*.idsig
+- /public/logo.jpg
+
+# ---- 部署脚本（签名私钥、本机专用配置排掉） ----
++ /deploy/**
+- /deploy/keystore/**
+- /deploy/android/keystore/**
+- /deploy/android/build/**
+- /deploy/android/local.properties
+- /deploy/*.local.*
+
+# ---- 测试、文档、样例 ----
++ /test/**
++ /docs/**
++ /samples/**
+# 样例导出产物与本地数据库由 samples/make-sample-exports.js 重新生成，不入库
+- /samples/*.xlsx
+- /samples/*.xls
+- /samples/*.db
+# 由 deploy/docs/build-docs.js 生成的二进制文档（中文文件名在 JDK 下易出错），只发布 .md 源文件
+- /docs/*.docx
+- /docs/*.pdf

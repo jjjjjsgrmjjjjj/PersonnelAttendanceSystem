@@ -1,0 +1,84 @@
+# ============================================================
+# 白名单式 .gitignore —— "默认拒绝，逐条放行"
+# ------------------------------------------------------------
+# 这样写的原因：黑名单（只列 data/、*.db）一旦漏写或以后新增
+# 敏感文件，就会默认被提交；白名单则默认全部忽略，漏写只会
+# 少传文件，不会多传数据。
+#
+# 但请注意：.gitignore 只影响"以后"，且 `git add -f` 可绕过。
+# 真正可靠的是发布前扫描，见 tools/publish.sh。
+# ============================================================
+
+# 1) 先忽略一切
+*
+
+# 2) 放行文件
+!.gitignore
+!.publishignore
+!README.md
+!README.public.md
+!package.json
+!LICENSE
+!.env.example
+
+# 3) 放行目录，再放行目录内容（Git 规则：父目录被忽略时，子文件的 ! 无效）
+!src/
+!src/**
+!public/
+!public/**
+!deploy/
+!deploy/**
+!test/
+!test/**
+!docs/
+!docs/**
+!samples/
+!samples/**
+
+
+# ============================================================
+# 4) 再从已放行的范围里挖掉敏感项（顺序：白名单在前，黑名单在后）
+# ============================================================
+
+# 运行时数据 / 备份 / 日志
+# 注意：带斜杠的目录规则必须加前导 /，否则 data/ 会匹配 src/data/ 这类子目录
+/data/
+/backups/
+*.log
+
+# 真实人员名单、真实值班/考勤数据、真实导出
+/src/data/roster.js
+/src/data/*.local.js
+*.db
+*.db-wal
+*.db-shm
+samples/*.xlsx
+samples/*.xls
+
+# Android 签名私钥与口令（泄露 = 别人可以冒名签发你的 App）
+/deploy/keystore/
+/deploy/android/keystore/
+*.jks
+*.keystore
+/deploy/android/local.properties
+
+# 本机/服务器专用配置（含真实域名、路径、口令）
+/deploy/*.local.*
+/deploy/1panel-*.local.conf
+/.env
+/.env.*
+
+# 构建产物与缓存
+node_modules/
+/.build/
+/dist/
+/.tmp/
+/deploy/android/build/
+
+# 二进制资产与历史 APK（由源码重新构建，避免仓库膨胀）
+/public/download/*.apk
+/public/download/*.pdf
+/public/download/*.docx
+
+# 本机私密凭据（SSH 私钥等）
+/.secrets/

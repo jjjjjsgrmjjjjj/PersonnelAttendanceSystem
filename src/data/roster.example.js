@@ -93,7 +93,7 @@ const MEMBERS = [
 // viewer:true 表示"成员11全组"账号（可查看所有组、可导出，但不能填报）
 const ACCOUNTS = [
   { username: 'admin', display: '系统管理员', admin: true, groups: [] },
-  { username: 'leader6', display: '成员22会（成员11）', admin: false, viewer: true, groups: [] },
+  { username: 'viewer', display: '访客账号', admin: false, viewer: true, groups: [] },
   { username: 'leader8', display: '成员18（径赛组组长）', admin: false, groups: ['jing_sai'] },
   { username: 'leader7', display: '成员34（田赛组组长）', admin: false, groups: ['tian_sai'] },
   { username: 'leader5', display: '成员46（自由组、摄影组组长）', admin: false, groups: ['zi_you', 'she_ying'] },

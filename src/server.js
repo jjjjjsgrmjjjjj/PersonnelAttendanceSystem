@@ -12,7 +12,8 @@ const crypto = require('node:crypto');
 
 const { APP_VERSION } = require('./version');
 const db = require('./db');
-const { canEditMember, isAdmin } = require('./permissions');
+const permissions = require('./permissions');
+const { canEditMember, canViewMember, isAdmin } = permissions;
 const attendance = require('./attendance');
 const xlsx = require('./xlsx');
 const { MIME, sendJson, sendText, sendBuffer, readJson, parseCookies, setCookie, parseUrl } = require('./http-util');
@@ -171,6 +172,9 @@ function userPublic(user) {
     username: user.username,
     display: user.display,
     isAdmin: !!user.is_admin,
+    canViewAll: !!user.can_view_all,
+    canExport: permissions.canExport(user),
+    canEdit: !!user.is_admin || (user.groups || []).length > 0,
     mustChange: !!user.must_change,
     groups: (user.groups || []).map((g) => ({ id: g.id, name: g.name })),
   };
@@ -193,6 +197,9 @@ function contextPayload(user) {
     members,
     editableGroupIds: user.is_admin ? groups.map((g) => g.id) : [...owned],
     editableMemberIds: members.filter((m) => canEditMember(user, m)).map((m) => m.id),
+    canViewAll: permissions.canViewAll(user),
+    canExport: permissions.canExport(user),
+    canEdit: !!user.is_admin || owned.size > 0,
     statusLabels: STATUS_LABELS,
     defaultPasswordUsed: false,
   };
@@ -274,6 +281,10 @@ async function handleApi(req, res, url) {
   const requireAdmin = () => {
     if (!isAdmin(user)) throw Object.assign(new Error('仅管理员可执行此操作'), { statusCode: 403 });
   };
+  // 成员11账号（成员22会）也能导出，所以导出的门槛与"管理"分开
+  const requireExport = () => {
+    if (!permissions.canExport(user)) throw Object.assign(new Error('没有导出权限'), { statusCode: 403 });
+  };
   const requireFresh = () => {
     if (user.must_change) throw Object.assign(new Error('请先修改初始密码后再操作'), { statusCode: 403 });
   };
@@ -315,7 +326,7 @@ async function handleApi(req, res, url) {
     for (const rec of map.values()) {
       const m = byId.get(rec.memberId);
       if (!m) continue;
-      if (!m.groupIds.some((g) => user.is_admin || user.groups.some((ug) => ug.id === g))) continue;
+      if (!canViewMember(user, m)) continue;   // 成员11账号可查看全部
       records.push({
         memberId: rec.memberId,
         date: rec.date,
@@ -345,9 +356,7 @@ async function handleApi(req, res, url) {
 
   if (route === 'GET /api/stats') {
     const cfg = db.getConfig();
-    const members = db.getMembers().filter((m) =>
-      m.groupIds.some((g) => user.is_admin || user.groups.some((ug) => ug.id === g))
-    );
+    const members = db.getMembers().filter((m) => canViewMember(user, m));
     const map = attendance.loadRange(cfg.dates[0] || '0000-01-01', cfg.dates[cfg.dates.length - 1] || '9999-12-31');
     const summary = attendance.summarize(members, map, cfg.dates, cfg.slots, STATUS_LABELS);
     return sendJson(res, 200, { dates: cfg.dates, slots: cfg.slots, summary });
@@ -380,7 +389,7 @@ async function handleApi(req, res, url) {
   }
 
   if (route === 'GET /api/export') {
-    requireAdmin();   // 导出仅管理员可用
+    requireExport();  // 管理员与成员11账号（成员22会）均可导出
     const cfg = db.getConfig();
     const groups = db.getGroups();
     const allMembers = db.getMembers();
@@ -439,7 +448,7 @@ async function handleApi(req, res, url) {
 
   // App 用：给它一个一次性的浏览器下载链接（浏览器没有登录 Cookie）
   if (route === 'GET /api/export/link') {
-    requireAdmin();
+    requireExport();
     // 参数既可以直传，也可以放在 u= 里（App 传的就是它也使用的导出地址）
     const keys = ['format', 'dates', 'slots', 'groups'];
     let qs = '';

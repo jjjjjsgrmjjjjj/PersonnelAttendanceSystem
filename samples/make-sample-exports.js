@@ -35,17 +35,17 @@ const members = db.getMembers();
 
 // 造一些贴近现场的样例记录
 const sample = [
-  ['成员13', 'present', ''],
-  ['成员42', 'late', '迟到 10 分钟，已提醒'],
-  ['成员15', 'leave', '请假半天，家属接走'],
-  ['成员39', 'absent', '未到岗'],
-  ['成员17', 'present', ''],
-  ['成员33', 'present', ''],
-  ['成员33', 'late', '无人机调参延迟 5 分钟'],
-  ['成员23', 'present', ''],
-  ['成员44', 'present', '兼任摄影组，两个组都已确认'],
-  ['成员32', 'present', ''],
-  ['成员14', 'leave', '请假一天'],
+  ['成员14', 'present', ''],
+  ['成员44', 'late', '迟到 10 分钟，已提醒'],
+  ['成员16', 'leave', '请假半天，家属接走'],
+  ['成员41', 'absent', '未到岗'],
+  ['成员18', 'present', ''],
+  ['成员35', 'present', ''],
+  ['成员35', 'late', '无人机调参延迟 5 分钟'],
+  ['成员25', 'present', ''],
+  ['成员46', 'present', '兼任摄影组，两个组都已确认'],
+  ['成员34', 'present', ''],
+  ['成员15', 'leave', '请假一天'],
   ['成员09', 'present', ''],
 ];
 
@@ -59,7 +59,7 @@ sample.forEach(([name, status, note], idx) => {
     slot: cfg.slots[2 + (idx % 6)],
     status,
     note,
-    substitute: status === 'leave' ? '成员41' : '',
+    substitute: status === 'leave' ? '成员43' : '',
   });
 });
 

@@ -9,6 +9,7 @@ const os = require('node:os');
 const path = require('node:path');
 const zlib = require('node:zlib');
 const { spawn } = require('node:child_process');
+const roster = require('../src/data/roster');
 
 const ROOT = path.resolve(__dirname, '..');
 // 注意：部分沙箱环境禁止以管道方式 spawn 子进程，因此这里先加载所有被测模块，
@@ -162,17 +163,17 @@ async function run() {
   step('半小时时段数=22', ctx.slots.length === 22, `slots=${ctx.slots.length}`);
   step('时段首尾正确', ctx.slots[0] === '07:00-07:30' && ctx.slots[21] === '17:30-18:00', `${ctx.slots[0]} … ${ctx.slots[21]}`);
 
-  const niu = ctx.members.find((m) => m.name === '成员33');
-  step('航拍组新增 成员33（高二九班）', !!niu && niu.cls === '高二九班' && niu.primaryGroupName === '航拍组');
+  const niu = ctx.members.find((m) => m.name === '成员35');
+  step('航拍组新增 成员35（高二九班）', !!niu && niu.cls === '高二九班' && niu.primaryGroupName === '航拍组');
   const hangpai = ctx.groups.find((g) => g.name === '航拍组');
   const hangpaiNames = ctx.members.filter((m) => m.primaryGroupId === hangpai.id).map((m) => m.name);
   step(
-    '航拍组共 7 人（原 6 人 + 新增成员33）',
-    hangpaiNames.length === 7 && hangpaiNames.includes('成员33') && hangpaiNames.includes('成员23'),
+    '航拍组共 7 人（原 6 人 + 新增成员35）',
+    hangpaiNames.length === 7 && hangpaiNames.includes('成员35') && hangpaiNames.includes('成员25'),
     hangpaiNames.join('、')
   );
-  const leader5 = ctx.members.find((m) => m.name === '成员44');
-  step('成员44兼任自由组+摄影组', leader5.groupIds.length === 2, leader5.extraGroupNames.join('、'));
+  const leader5 = ctx.members.find((m) => m.name === '成员46');
+  step('成员46兼任自由组+摄影组', leader5.groupIds.length === 2, leader5.extraGroupNames.join('、'));
 
   /* 4. 未改密码前不能填报 */
   const blocked = await admin.post('/api/attendance', {
@@ -185,14 +186,14 @@ async function run() {
   step('管理员修改密码成功', pwd.status === 200);
 
   /* 6. 普通组长登录并修改密码 */
-  const leaderLogin = await leader.post('/api/login', { username: 'leader7', password: PASSWORD });
+  const leaderLogin = await leader.post('/api/login', { username: 'leader8', password: PASSWORD });
   step('径赛组组长登录成功', leaderLogin.status === 200 && !leaderLogin.data.user.isAdmin);
   await leader.post('/api/password', { oldPassword: PASSWORD, password: NEW_PASSWORD });
   const leaderMe = await leader.get('/api/me');
   const lctx = leaderMe.data.context;
   const jingsai = ctx.groups.find((g) => g.name === '径赛组');
-  const zhou = ctx.members.find((m) => m.name === '成员13');
-  const wu = ctx.members.find((m) => m.name === '成员32'); // 田赛组，不应可编辑
+  const zhou = ctx.members.find((m) => m.name === '成员14');
+  const wu = ctx.members.find((m) => m.name === '成员34'); // 田赛组，不应可编辑
   step('组长仅能编辑本组', lctx.editableMemberIds.includes(zhou.id) && !lctx.editableMemberIds.includes(wu.id));
 
   /* 7. 组长越权写入应被拒绝 */
@@ -274,7 +275,7 @@ async function run() {
   const jingsaiIdx = [...workbook.matchAll(/<sheet name="([^"]+)"[^>]*r:id="rId(\d+)"/g)].find((m) => m[1] === '径赛组');
   const jingsaiXml = zip.read(`xl/worksheets/sheet${jingsaiIdx[2]}.xml`).toString('utf8');
   step('径赛组工作表含考勤标记「出」', jingsaiXml.includes('>出<'));
-  step('径赛组工作表含姓名「成员13」', jingsaiXml.includes('成员13'));
+  step('径赛组工作表含姓名「成员14」', jingsaiXml.includes('成员14'));
   // 列对齐自检：同一工作表内，每行的「占位宽度」= 单元格数 + 横向合并补足列数，必须一致，
   // 只有整行留空的间隔行可以例外。这是防止列错位这类静默错误的关键检查。
   const widthProblems = [];
@@ -301,7 +302,7 @@ async function run() {
   step('各工作表行宽一致（无列错位）', widthProblems.length === 0, widthProblems.join(' | '));
   // 备注与替岗必须写进导出
   const hangpaiXml = zip.read(`xl/worksheets/sheet${hangpaiSheetIdx[2]}.xml`).toString('utf8');
-  step('航拍组工作表写出班级与姓名', hangpaiXml.includes('高二九班') && hangpaiXml.includes('成员33'));
+  step('航拍组工作表写出班级与姓名', hangpaiXml.includes('高二九班') && hangpaiXml.includes('成员35'));
 
   /* 14. 导出 xls（Excel 2003 XML） */
   const xlsRes = await admin.get('/api/export?format=xls');
@@ -313,7 +314,7 @@ async function run() {
     xlsRes.status === 200 && xlsText.startsWith('<?xml') && xlsText.includes('urn:schemas-microsoft-com:office:spreadsheet') && xlsText.includes('</Workbook>'),
     `${xlsText.length} 字节`
   );
-  step('xls 含航拍组与成员33', xlsText.includes('ss:Name="航拍组"') && xlsText.includes('成员33'));
+  step('xls 含航拍组与成员35', xlsText.includes('ss:Name="航拍组"') && xlsText.includes('成员35'));
   // 导出必须包含表格名称、分组、每人时段格与备注列
   step(
     'xls 表头含姓名/班级/时段/备注列',
@@ -336,12 +337,63 @@ async function run() {
   const leaderCfg = await leader.post('/api/config', { dates: ['2026-10-01'] });
   step('组长无权修改设置(403)', leaderCfg.status === 403, `status=${leaderCfg.status}`);
 
+  /* 16b. 成员11账号（成员22会）：能看全部、能导出，但一个字都改不了 */
+  const viewerAccount = roster.ACCOUNTS.find((a) => a.viewer);
+  if (viewerAccount) {
+    const viewer = makeClient();
+    const vLogin = await viewer.post('/api/login', { username: viewerAccount.username, password: PASSWORD });
+    step('成员11账号登录成功', vLogin.status === 200, `status=${vLogin.status}`);
+    await viewer.post('/api/password', { oldPassword: PASSWORD, password: NEW_PASSWORD });
+    const vMe = await viewer.get('/api/me');
+    const vctx = vMe.data.context;
+    step(
+      '成员11账号可查看全部小组',
+      vctx.members.length === ctx.members.length && vctx.canViewAll === true,
+      `可见 ${vctx.members.length}/${ctx.members.length} 人`
+    );
+    step('成员11账号没有任何可编辑成员', vctx.editableMemberIds.length === 0, `${vctx.editableMemberIds.length} 个`);
+    step('成员11账号可导出', vctx.canExport === true && vctx.canEdit === false);
+
+    // 越权写入必须被服务端拒绝（saved=0）
+    const illegal = await viewer.post('/api/attendance', {
+      changes: [{ memberId: ctx.members[0].id, date: vctx.dates[0], slot: vctx.slots[0], status: 'present' }],
+    });
+    step(
+      '成员11账号填报被拒绝(saved=0)',
+      illegal.status === 200 && illegal.data.saved === 0 && illegal.data.skipped >= 1,
+      `saved=${illegal.data.saved} skipped=${illegal.data.skipped}`
+    );
+    // 导出可用、管理接口不可用
+    const vExport = await viewer.get('/api/export?format=xlsx');
+    step('成员11账号导出 Excel 成功', vExport.status === 200, `status=${vExport.status}`);
+    const vAdmin = await viewer.get('/api/admin/users');
+    step('成员11账号无权访问账号管理(403)', vAdmin.status === 403, `status=${vAdmin.status}`);
+    const vCfg = await viewer.post('/api/config', { title: 'x' });
+    step('成员11账号无权修改设置(403)', vCfg.status === 403, `status=${vCfg.status}`);
+  }
+
   /* 17. 组长登录后不应看到其它组可编辑 */
   const users = await admin.get('/api/admin/users');
-  step('账号列表可读', users.status === 200 && users.data.users.length === 9, `${users.data.users.length} 个账号`);
-  const reset = await admin.post('/api/admin/users/reset', { id: users.data.users.find((u) => u.username === 'leader7').id });
+  // 账号数量随名单变化，按真实名单算，避免改名单就得改测试
+  const expectUsers = roster.ACCOUNTS.length;
+  step(
+    '账号列表可读',
+    users.status === 200 && users.data.users.length === expectUsers,
+    `${users.data.users.length} 个账号（期望 ${expectUsers}）`
+  );
+  // 成员11账号（成员22会一类）应存在：非管理员、可导出、无任何可编辑成员
+  const viewerName = (roster.ACCOUNTS.find((a) => a.viewer) || {}).username;
+  if (viewerName) {
+    const vu = users.data.users.find((u) => u.username === viewerName);
+    step(
+      `成员11账号 ${viewerName} 已建立且非管理员`,
+      !!vu && vu.is_admin === 0 && vu.can_view_all === 1,
+      vu ? `is_admin=${vu.is_admin} can_view_all=${vu.can_view_all}` : '未找到'
+    );
+  }
+  const reset = await admin.post('/api/admin/users/reset', { id: users.data.users.find((u) => u.username === 'leader8').id });
   step('重置密码可用', reset.status === 200 && reset.data.password === PASSWORD);
-  const relogin = await leader.post('/api/login', { username: 'leader7', password: PASSWORD });
+  const relogin = await leader.post('/api/login', { username: 'leader8', password: PASSWORD });
   step('重置后可用初始密码登录', relogin.status === 200 && relogin.data.user.mustChange === true);
 
   /* 18. 会话失效 */

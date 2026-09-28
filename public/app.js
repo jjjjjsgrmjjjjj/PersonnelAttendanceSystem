@@ -187,13 +187,15 @@ function onLoggedIn(user, ctx) {
   $('#view-app').hidden = false;
   $('#app-title').textContent = ctx.title || '考勤系统';
   $('#app-sub').textContent = `${ctx.org || ''}　${ctx.dates.join('、')}`;
-  $('#whoami').textContent = `${user.display}${user.isAdmin ? '（管理员）' : ''}`;
+  $('#whoami').textContent = user.display +
+    (user.isAdmin ? '（管理员）' : user.canViewAll ? '（成员11）' : '');
   $('#tab-admin').hidden = !user.isAdmin;
   renderMarkButtons();
   const dlBtn = $('#btn-download-center');
   if (dlBtn) dlBtn.hidden = false;
   applyTheme();
-  adminExportVisible(!!user.isAdmin);
+  adminExportVisible(!!(user.canExport || user.isAdmin));
+  applyReadOnlyMode();
   renderDateSwitch();
   renderGroupFilter();
   renderHint();
@@ -220,9 +222,29 @@ function showTab(name) {
 
 function renderHint() {
   const locked = WRITE_LOCKED(state.ctx);
+  const ro = isReadOnly();
   $('#fill-hint').innerHTML = locked
     ? '请先修改初始密码，修改后才能填报考勤。'
-    : '先在上方「标记」里选状态（默认出勤），再点格子即标记；电脑数字键 <span class="k">1</span><span class="k">2</span><span class="k">3</span><span class="k">4</span><span class="k">0</span>，<span class="k">右键</span>或长按格子填备注；改动自动保存。';
+    : ro
+      ? '本账号为<b>成员11账号</b>：可以查看全部小组的考勤、使用「导出 Excel」，但不能填报或修改。'
+      : '先在上方「标记」里选状态（默认出勤），再点格子即标记；电脑数字键 <span class="k">1</span><span class="k">2</span><span class="k">3</span><span class="k">4</span><span class="k">0</span>，<span class="k">右键</span>或长按格子填备注；改动自动保存。';
+}
+
+/** 成员11账号（成员22会）：可看全部、可导出，不可填报 */
+function isReadOnly() {
+  const ctx = state.ctx;
+  if (!ctx) return false;
+  if (typeof ctx.canEdit === 'boolean') return !ctx.canEdit;
+  return !ctx.user.isAdmin && !(ctx.editableMemberIds || []).length;
+}
+
+/** 成员11时收起批量工具，避免误以为能改 */
+function applyReadOnlyMode() {
+  const ro = isReadOnly();
+  const batch = $('#tool-batch');
+  if (batch) batch.hidden = ro;
+  const marks = $('#mark-buttons');
+  if (marks) marks.hidden = ro;
 }
 
 /* ---------------- 日期 ---------------- */
@@ -542,9 +564,10 @@ function renderRow(m, dates, slots, canEdit, totals, currentGroup) {
       td.dataset.memberId = m.id;
       td.dataset.date = d;
       td.dataset.slot = s;
-      if (!canEdit) {
+      const ro = isReadOnly();
+      if (!canEdit || ro) {
         td.classList.add('readonly');
-        td.title = '无权修改该组考勤';
+        td.title = ro ? '成员11账号：可查看与导出，不能修改' : '无权修改该组考勤';
       }
       applyCellVisual(td, m, d, s, totals);
       tr.appendChild(td);
@@ -556,7 +579,7 @@ function renderRow(m, dates, slots, canEdit, totals, currentGroup) {
   const noteInput = document.createElement('input');
   noteInput.type = 'text';
   noteInput.maxLength = 500;
-  noteInput.placeholder = canEdit ? '点这里填写备注…' : '（只读）';
+  noteInput.placeholder = canEdit ? '点这里填写备注…' : '（成员11）';
   noteInput.disabled = !canEdit;
   noteInput.dataset.role = 'note';
   noteInput.value = rowNote(m, dates, slots);
@@ -574,7 +597,7 @@ function renderRow(m, dates, slots, canEdit, totals, currentGroup) {
   const subInput = document.createElement('input');
   subInput.type = 'text';
   subInput.maxLength = 100;
-  subInput.placeholder = canEdit ? '替岗同学姓名…' : '（只读）';
+  subInput.placeholder = canEdit ? '替岗同学姓名…' : '（成员11）';
   subInput.disabled = !canEdit;
   subInput.dataset.role = 'sub';
   subInput.value = rowSub(m, dates, slots);
@@ -764,7 +787,7 @@ function applyStatusToCell(td, status) {
     return false;
   }
   if (td.classList.contains('readonly')) {
-    toast('该组不在您的负责范围内，无法修改', true);
+    toast(isReadOnly() ? '成员11账号：可以查看和导出，但不能填报' : '该组不在您的负责范围内，无法修改', true);
     return false;
   }
   if (WRITE_LOCKED(state.ctx)) {
@@ -839,7 +862,7 @@ let cellDialogStatus = 'unmarked';
 
 function openCellDialog(td) {
   if (td.classList.contains('readonly')) {
-    toast('该组不在您的负责范围内，无法修改', true);
+    toast(isReadOnly() ? '成员11账号：可以查看和导出，但不能填报' : '该组不在您的负责范围内，无法修改', true);
     return;
   }
   if (WRITE_LOCKED(state.ctx)) {

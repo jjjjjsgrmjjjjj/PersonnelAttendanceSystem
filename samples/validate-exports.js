@@ -248,21 +248,21 @@ function contentChecks(files) {
   };
   const hangpai = find('航拍组');
   log(!!hangpai, '存在「航拍组」工作表');
-  for (const n of ['成员23', '成员18', '成员34', '成员36', '成员38', '成员24', '成员33']) {
+  for (const n of ['成员25', '成员19', '成员36', '成员38', '成员40', '成员26', '成员35']) {
     if (!hangpai.includes(n)) log(false, `航拍组缺少 ${n}`);
   }
   log(
-    ['成员23', '成员18', '成员34', '成员36', '成员38', '成员24', '成员33'].every((n) => hangpai.includes(n)),
+    ['成员25', '成员19', '成员36', '成员38', '成员40', '成员26', '成员35'].every((n) => hangpai.includes(n)),
     '航拍组 7 人全部在表内'
   );
-  log(hangpai.includes('高二九班'), '成员33班级「高二九班」正确');
+  log(hangpai.includes('高二九班'), '成员35班级「高二九班」正确');
   const jingsai = find('径赛组');
   log(
-    ['成员17', '成员13', '成员42', '成员39', '成员15'].every((n) => jingsai.includes(n)),
+    ['成员18', '成员14', '成员44', '成员41', '成员16'].every((n) => jingsai.includes(n)),
     '径赛组 5 人全部在表内'
   );
   const overview = find('考勤总览');
-  log(overview.includes('成员33') && overview.includes('出勤率'), '总览表含全部人员与出勤率');
+  log(overview.includes('成员35') && overview.includes('出勤率'), '总览表含全部人员与出勤率');
   const readme = find('说明');
   log(readme.includes('迟到') && readme.includes('请假'), '说明表含状态含义');
   // 备注与替岗必须写入
@@ -270,7 +270,7 @@ function contentChecks(files) {
     .map((m) => files.get('xl/' + relMap.get(m[2]).replace(/^\.\//, '')).toString('utf8'))
     .join('\n');
   log(allSheets.includes('迟到 10 分钟，已提醒'), '逐时段备注已写入导出表');
-  log(allSheets.includes('由成员41替岗'), '替岗人员已写入导出表');
+  log(allSheets.includes('由成员43替岗'), '替岗人员已写入导出表');
   log(allSheets.includes('请假一天'), '请假备注已写入导出表');
   // 表头时段应覆盖 7:00-18:00
   const slots = [...jingsai.matchAll(/>(\d{2}:\d{2}-\d{2}:\d{2})</g)].map((m) => m[1]);

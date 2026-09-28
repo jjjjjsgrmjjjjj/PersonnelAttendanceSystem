@@ -101,6 +101,7 @@ function open() {
       display       TEXT NOT NULL,
       password_hash TEXT NOT NULL,
       is_admin      INTEGER NOT NULL DEFAULT 0,
+      can_view_all  INTEGER NOT NULL DEFAULT 0,
       must_change   INTEGER NOT NULL DEFAULT 1,
       active        INTEGER NOT NULL DEFAULT 1,
       created_at    TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -146,6 +147,12 @@ function open() {
       detail     TEXT NOT NULL DEFAULT ''
     );
   `);
+
+  // 老库迁移：成员11查看账号（成员22会一类）需要 can_view_all 列
+  const userCols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+  if (!userCols.includes('can_view_all')) {
+    db.exec('ALTER TABLE users ADD COLUMN can_view_all INTEGER NOT NULL DEFAULT 0');
+  }
   return db;
 }
 
@@ -185,10 +192,10 @@ function seed({ force = false } = {}) {
     }
   });
 
-  const insUser = d.prepare('INSERT INTO users(username,display,password_hash,is_admin,must_change) VALUES(?,?,?,?,1)');
+  const insUser = d.prepare('INSERT INTO users(username,display,password_hash,is_admin,can_view_all,must_change) VALUES(?,?,?,?,?,1)');
   const insUserGroup = d.prepare('INSERT OR IGNORE INTO user_groups(user_id,group_id) VALUES(?,?)');
   for (const a of roster.ACCOUNTS) {
-    insUser.run(a.username, a.display, hashPassword(DEFAULT_PASSWORD), a.admin ? 1 : 0);
+    insUser.run(a.username, a.display, hashPassword(DEFAULT_PASSWORD), a.admin ? 1 : 0, a.viewer ? 1 : 0);
     const uid = d.prepare('SELECT id FROM users WHERE username=?').get(a.username).id;
     for (const gk of a.groups) {
       if (!groupIdByKey.has(gk)) throw new Error(`未知分组 key: ${gk} (${a.username})`);
@@ -372,7 +379,7 @@ function getSession(token) {
     return null;
   }
   const user = d
-    .prepare('SELECT id,username,display,is_admin,must_change,active FROM users WHERE id=?')
+    .prepare('SELECT id,username,display,is_admin,can_view_all,must_change,active FROM users WHERE id=?')
     .get(row.user_id);
   if (!user || !user.active) return null;
   return { token, user };
@@ -398,7 +405,7 @@ function setPassword(userId, password) {
 function listUsers() {
   const d = open();
   return d
-    .prepare('SELECT id,username,display,is_admin,must_change,active,created_at FROM users ORDER BY is_admin DESC, id')
+    .prepare('SELECT id,username,display,is_admin,can_view_all,must_change,active,created_at FROM users ORDER BY is_admin DESC, can_view_all DESC, id')
     .all()
     .map((u) => ({ ...u, groups: getUserGroups(u.id).map((g) => g.name) }));
 }

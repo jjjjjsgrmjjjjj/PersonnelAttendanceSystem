@@ -99,10 +99,17 @@ function systemDark() {
   return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 }
 
+/** iOS Safari 顶部状态栏取色：跟随当前主题更新 theme-color */
+function syncThemeColor(dark) {
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute('content', dark ? '#0b1e32' : '#0f2b46');
+}
+
 function applyTheme(mode) {
   const m = mode || localStorage.getItem(THEME_KEY) || 'auto';
   const dark = m === 'dark' || (m === 'auto' && systemDark());   // auto 时跟随系统
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  syncThemeColor(dark);
   try { if (state.ctx && state.ctx.members && renderGrid) renderGrid(); } catch (e) {}
   document.documentElement.dataset.themeMode = m;
   const icon = m === 'auto' ? '◐' : (m === 'dark' ? '☾' : '☀');

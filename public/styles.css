@@ -937,3 +937,104 @@ textarea { resize: vertical; font-family: ui-monospace, Consolas, "Microsoft YaH
   overflow: hidden; text-overflow: ellipsis;
   background: var(--grp);
 }
+
+/* ===== Safari / iOS 兼容增强（由 tools/safari-compat.js 生成，勿手改） ===== */
+/* 1) iOS Safari：输入控件字号小于 16px 时，聚焦会强制放大整个页面。
+      只对触屏设备生效，桌面端保持原来的紧凑字号。 */
+@media (hover: none) and (pointer: coarse) {
+  input[type="text"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  .select,
+  .col-note input,
+  .col-sub input,
+  .reminder-form input,
+  .exp-list input {
+    font-size: 16px !important;
+  }
+  .col-note input, .col-sub input { padding: 6px 4px; }
+}
+
+/* 2) iOS 上的按钮/复选框默认外观：不重置会发灰、圆角不一致 */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px; height: 16px; margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--input-bg);
+  display: inline-block; vertical-align: middle;
+  position: relative; cursor: pointer;
+}
+input[type="checkbox"]:checked {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute; left: 5px; top: 1px;
+  width: 4px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:focus-visible { outline: 2px solid rgba(27, 69, 112, .35); }
+
+/* 3) iOS 上没有 -webkit- 前缀时，select 会保留系统外观并溢出容器 */
+@supports (-webkit-touch-callout: none) {
+  .select,
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: none;
+  }
+  .btn, .tab, .seg, .theme-btn, .login-theme, .icon-btn {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+/* 4) iOS 的 100vh 含地址栏，改用 svh/dvh 才不会出现"底部被裁掉" */
+@supports (height: 100svh) {
+  .login-wrap { min-height: 100svh; }
+}
+@supports (height: 100dvh) {
+  .grid-wrap { max-height: calc(100dvh - 230px); }
+}
+@media (max-width: 900px) {
+  @supports (height: 100dvh) {
+    .grid-wrap { max-height: calc(100dvh - 260px); }
+  }
+}
+
+/* 4b) iOS 顶部状态栏配色（Safari 读取 meta，见 index.html） */
+
+/* 5) 刘海屏 / 底部横条：安全区留白 */
+.topbar {
+  padding-left: calc(14px + env(safe-area-inset-left, 0px));
+  padding-right: calc(14px + env(safe-area-inset-right, 0px));
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+}
+.login-wrap {
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+.toast { bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+.grid-wrap {
+  margin-left: calc(10px + env(safe-area-inset-left, 0px));
+  margin-right: calc(10px + env(safe-area-inset-right, 0px));
+}
+
+/* 6) iOS 上按钮有 300ms 点按延迟与灰色高亮，用 touch-action 与高亮色消除 */
+.btn, .tab, .seg, .icon-btn, .theme-btn, .login-theme, .grid td.cell, .topbar, .dl-item {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 7) -webkit-user-select：老 Safari 不认无前缀写法 */
+.no-select, .grid thead th, .grid .col-name, .grid .grp-row td {
+  -webkit-user-select: none;
+  user-select: none;
+}

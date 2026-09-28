@@ -101,6 +101,26 @@ function run() {
 
   /* 表格吸顶表头依赖 sticky 定位 */
   check(/position:\s*sticky/.test(css), '样式表包含吸顶定位');
+
+  /* ---------------- Safari / iOS 兼容 ---------------- */
+  check(/viewport-fit=cover/.test(html), 'viewport 支持刘海屏安全区（viewport-fit=cover）');
+  check(/height:\s*100svh/.test(css) || /height:\s*100dvh/.test(css), '用 svh/dvh 修正 iOS 的 100vh 高度');
+  check(/env\(safe-area-inset-/.test(css), '使用安全区留白（env(safe-area-inset-*)）');
+  check(/-webkit-appearance:\s*none/.test(css), 'iOS 表单控件有 -webkit-appearance 重置');
+  check(/touch-action:\s*manipulation/.test(css), '消除 iOS 点按 300ms 延迟（touch-action）');
+  check(/-webkit-tap-highlight-color/.test(css), '关闭 iOS 点按灰色高亮');
+  check(/-webkit-user-select/.test(css), '选择行为带 -webkit- 前缀');
+  // iOS Safari 上控件字号 <16px 会触发"聚焦自动放大页面"
+  check(
+    /@media \(hover: none\) and \(pointer: coarse\)/.test(css) && /font-size:\s*16px/.test(css),
+    '触屏设备控件字号 ≥16px（避免 iOS 聚焦自动放大）'
+  );
+  check(
+    /apple-mobile-web-app-capable/.test(html) && /black-translucent/.test(html),
+    'iOS 添加到主屏后可全屏且状态栏透明'
+  );
+  check(/format-detection/.test(html), '禁止 iOS 把数字/日期渲染成可点链接');
+  check(/syncThemeColor/.test(js), 'iOS 状态栏配色跟随主题（同步 theme-color）');
 }
 
 module.exports = { run, get failures() { return failures; } };
